@@ -8,8 +8,7 @@ class GoodreadsQuoteSpider(scrapy.Spider):
     start_urls = ['https://www.goodreads.com/quotes?page=1']
 
     def parse(self, response):
-        x = response
-        for quote in x.xpath('//div[@class="quoteDetails"]'):
+        for quote in response.xpath('//div[@class="quoteDetails"]'):
             book_quotes_link = quote.xpath('.//a[@class="authorOrTitle"]/@href').extract_first()
             item = {
                 'text': [s.strip() for s in quote.xpath('./div[@class="quoteText"]/text()').extract()[:-2] if s.strip()],
@@ -31,7 +30,7 @@ class GoodreadsQuoteSpider(scrapy.Spider):
                     callback=self.parse_quote_page,
                     meta={'item': item})
         
-        page = x.xpath('//a[@class="next_page"]/@href').extract_first()
+        page = response.xpath('//a[@class="next_page"]/@href').extract_first()
         if page:
             yield scrapy.Request(response.urljoin(page))
 
@@ -45,6 +44,6 @@ class GoodreadsQuoteSpider(scrapy.Spider):
         item = response.meta.get('item')
         item.update({
             'book_genres': response.xpath('//a[@class="actionLinkLite bookPageGenreLink"]/text()').extract(),
-            'full_shelves_link': response.xpath('//a[@class="actionLink right bookPageGenreLink__seeMoreLink"]/@href').extract_first()
+            'full_shelves_link': response.xpath('//a[contains(text(), "top shelves")]/@href').extract_first() # e.g. https://www.goodreads.com/work/shelves/13155899-divergent
         })
         yield item

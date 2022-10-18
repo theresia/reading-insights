@@ -10,11 +10,13 @@ class GoodreadsQuoteSpider(scrapy.Spider):
     def parse(self, response):
         for quote in response.xpath('//div[@class="quoteDetails"]'):
             book_quotes_link = quote.xpath('.//a[@class="authorOrTitle"]/@href').extract_first()
+            book_title = quote.xpath('.//a[@class="authorOrTitle"]/text()').extract_first()
             item = {
+                'source_url': response.url,
                 'text': [s.strip() for s in quote.xpath('./div[@class="quoteText"]/text()').extract()[:-2] if s.strip()],
                 'author': quote.xpath('.//span[@class="authorOrTitle"]/text()').extract_first().strip(),
                 'author_link': quote.xpath('.//a[@class="leftAlignedImage"]/@href').extract_first(),
-                'book_title': quote.xpath('.//a[@class="authorOrTitle"]/text()').extract_first(),
+                'book_title': book_title,
                 'book_quotes_link': book_quotes_link,
                 'tags': quote.xpath('.//div[@class="quoteFooter"]/div[contains(@class, "smallText")]//a/text()').extract(),
                 'likes': quote.xpath('.//div[@class="quoteFooter"]//a[contains(@class, "smallText")]/text()').extract_first(),
@@ -24,7 +26,6 @@ class GoodreadsQuoteSpider(scrapy.Spider):
             if book_quotes_link is None:
                 yield item
             else:
-                # book_quotes_link = book_quotes_link.replace('/work/quotes/', '/book/show/')
                 yield scrapy.Request(
                     response.urljoin(book_quotes_link),
                     callback=self.parse_quote_page,
@@ -37,7 +38,11 @@ class GoodreadsQuoteSpider(scrapy.Spider):
     def parse_quote_page(self, response):
         # e.g. https://www.goodreads.com/work/quotes/55587025-the-power-of-moments-why-certain-experiences-have-extraordinary-impact
         quote_book_detail_link = response.xpath('//a[@class="bookTitle"]/@href').extract_first()
-        yield scrapy.Request(response.urljoin(quote_book_detail_link), callback=self.parse_book_detail_page, meta={'item': response.meta.get('item')})
+        yield scrapy.Request(
+            response.urljoin(quote_book_detail_link),
+            callback=self.parse_book_detail_page,
+            meta={'item': response.meta.get('item')}
+        )
 
     def parse_book_detail_page(self, response):
         # e.g. https://www.goodreads.com/book/show/34466952-the-power-of-moments

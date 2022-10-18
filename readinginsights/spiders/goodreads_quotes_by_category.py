@@ -8,7 +8,8 @@ class GoodreadsQuotesByCategorySpider(scrapy.Spider):
     start_urls = ['https://www.goodreads.com/quotes?page=1']
 
     def parse(self, response):
-        for cat in response.xpath('//div[form[@class="gr-form--compact popularTagSearch"]]//a[@class="gr-hyperlink"]'):
+        # for cat in response.xpath('//div[form[@class="gr-form--compact popularTagSearch"]]//a[@class="gr-hyperlink"]'):
+        for cat in response.xpath('//div[form[contains(@class,"popularTagSearch")]]//a[@class="gr-hyperlink"]'):
             yield scrapy.Request(
                     response.urljoin(cat.xpath('@href').extract_first()),
                     callback=self.parse_category,
@@ -57,7 +58,6 @@ class GoodreadsQuotesByCategorySpider(scrapy.Spider):
         item = response.meta.get('item')
         item.update({
             'book_genres': response.xpath('//a[@class="actionLinkLite bookPageGenreLink"]/text()').extract(),
-            'full_shelves_link': response.xpath(
-                '//a[@class="actionLink right bookPageGenreLink__seeMoreLink"]/@href').extract_first()
+            'full_shelves_link': response.xpath('//a[contains(text(), "top shelves")]/@href').extract_first() # e.g. https://www.goodreads.com/work/shelves/13155899-divergent
         })
         yield item
